@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>My Sweet Money & Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --primary: #ffafcc; --secondary: #a2d2ff; --income: #2ecc71; --expense: #ff595e; --save: #3498db; --bg: #fff5f8; --event-txt: #ff70a6; --dark-pink: #c9184a; --soft-blue: #4895ef; }
+  body { font-family: 'Mali', cursive; background: var(--bg); margin: 0; padding: 0; color: #555; }
+  .container { max-width: 450px; margin: auto; padding: 15px; padding-bottom: 100px; }
+
+  /* Navigation */
+  .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 12px 5px; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); z-index: 1000; border-radius: 25px 25px 0 0; }
+  .nav-item { text-align: center; cursor: pointer; color: #ccc; flex: 1; transition: 0.3s; font-size: 0.65rem; }
+  .nav-item.active { color: var(--primary); font-weight: bold; transform: translateY(-3px); }
+  .nav-item span { display: block; font-size: 1.4rem; margin-bottom: 2px; }
+
+  .page { display: none; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .card { background: white; border-radius: 25px; padding: 20px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.02); position: relative; }
+  input, select, textarea { font-family: 'Mali'; border: 1.5px solid #eee; border-radius: 15px; padding: 12px; width: 100%; box-sizing: border-box; outline: none; margin-bottom: 10px; }
+
+  /* แสดงสีแดงเมื่อเลขไม่ครบ */
+  .invalid-input { color: var(--expense) !important; border-color: var(--expense) !important; }
+
+  /* แจ้งเตือนหน้าแรกดุ๊กดิ๊ก */
+  #today-alert-banner { 
+    display: none; 
+    background: white; 
+    border: 3px dashed var(--primary); 
+    border-radius: 25px; 
+    padding: 15px; 
+    margin-bottom: 15px; 
+    align-items: center; 
+    gap: 15px; 
+    animation: slideDown 0.5s ease;
+    box-shadow: 0 8px 20px rgba(255, 175, 204, 0.15);
+  }
+  @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  
+  .bell-icon { 
+    font-size: 1.8rem; 
+    animation: nudgeBell 1.5s infinite ease-in-out; 
+    display: inline-block;
+  }
+  @keyframes nudgeBell {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    20% { transform: scale(1.2) rotate(-15deg); }
+    40% { transform: scale(1.2) rotate(15deg); }
+    60% { transform: scale(1.1) translateY(-5px); }
+  }
+
+  /* Date Picker Custom */
+  .date-picker-wrapper { position: relative; display: inline-block; width: 100%; margin-top: 5px; }
+  .cute-date-display { background: #fff9fb; border: 2px dashed var(--primary); border-radius: 20px; padding: 10px; color: var(--primary); font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: 0.2s; }
+  .cute-date-display:active { transform: scale(0.95); background: #ffeff5; }
+  .hidden-date-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+  /* Category Menu */
+  .scroll-cat-container { max-height: 200px; overflow-y: auto; padding: 5px; margin-bottom: 12px; border-radius: 15px; background: rgba(255, 255, 255, 0.4); }
+  #cat-menu { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .cat-btn { background: white; padding: 12px 5px; border-radius: 20px; text-align: center; cursor: pointer; border: 1px solid #eee; transition: 0.2s; }
+  .cat-btn:active { transform: scale(0.92); background: #fff0f5; }
+
+  #sub-items-box { display: none; flex-wrap: wrap; justify-content: center; gap: 5px; padding: 15px; background: white; border-radius: 25px; margin-bottom: 15px; border: 2px dashed var(--primary); }
+  .sub-item-btn { background: white; color: var(--primary); border: 2px solid var(--primary); padding: 7px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-family: 'Mali'; }
+
+  /* Updated Budget Box - Sweet Theme */
+  .budget-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    border: 3px dashed var(--primary);
+    border-radius: 25px;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 8px 20px rgba(255, 175, 204, 0.15);
+  }
+  .budget-item { flex: 1; text-align: center; }
+  .budget-divider { width: 2px; height: 40px; background: #ffe0eb; margin: 0 10px; }
+  .budget-label { font-size: 0.75rem; color: #ff70a6; font-weight: bold; display: block; margin-bottom: 2px; opacity: 0.8; }
+  
+  #start-budget { width: 100%; border: none; color: var(--soft-blue); font-weight: bold; font-size: 1.8rem; background: transparent; text-align: center; margin: 0; padding: 0; outline: none; }
+  #rem-budget { color: var(--dark-pink); font-size: 2rem; font-weight: bold; line-height: 1.2; }
+
+  .stat-box { cursor: pointer; transition: 0.2s; padding: 10px; border-radius: 15px; flex: 1; border: 1px solid transparent; }
+  .stat-box:active { background: #f0f0f0; }
+  .stat-box.active { background: #fff0f5; border: 1px solid var(--primary); }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; background: white; padding: 12px; border-radius: 25px; }
+  .day-cell { min-height: 80px; border-radius: 15px; border: 1px solid #fff0f5; display: flex; flex-direction: column; align-items: center; padding: 5px; font-size: 0.8rem; cursor: pointer; position: relative; background: #fff; }
+  .day-cell.today { background: var(--primary) !important; color: white !important; }
+  .day-cell.selected { border: 2.5px solid var(--primary); background: #fff9fb; }
+  .event-name { font-size: 0.5rem; color: var(--event-txt); line-height: 1.1; margin-top: 2px; text-align: center; font-weight: bold; }
+  .monk-icon-wrap { color: orange; font-size: 0.5rem; margin-top: 1px; font-weight: bold; }
+  
+  .has-plan-heart { font-size: 0.7rem; margin-top: 2px; color: var(--primary); }
+
+  .alert-dot { position: absolute; top: 4px; right: 4px; font-size: 0.7rem; animation: nudge 1.5s infinite ease-in-out; }
+  @keyframes nudge { 0%, 100% { transform: rotate(0deg) scale(1); } 25% { transform: rotate(15deg) scale(1.1); } 75% { transform: rotate(-15deg) scale(1.1); } }
+
+  .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+  .history-info b { display: block; font-size: 0.9rem; }
+  .history-info small { color: #999; font-size: 0.7rem; }
+  .history-amt { font-weight: bold; }
+  .btn-del { color: #ff595e; border: none; background: none; font-size: 1.2rem; cursor: pointer; margin-left: 10px; }
+
+  .manage-item { background: white; padding: 15px; border-radius: 20px; margin-bottom: 12px; border: 1px solid #eee; }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0; }
+  .tag { background: #f0f0f0; padding: 4px 10px; border-radius: 10px; font-size: 0.75rem; display: flex; align-items: center; }
+  .tag span { margin-left: 5px; color: #ff595e; cursor: pointer; font-weight: bold; }
+
+  .ov-box { background: white; padding: 15px; border-radius: 20px; flex: 1; text-align: center; border: 1px solid #eee; }
+  
+  .check-wrapper { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; padding-left: 5px; cursor: pointer; font-size: 0.9rem; color: #888; }
+  .check-wrapper input { width: 18px; height: 18px; margin: 0; accent-color: var(--primary); cursor: pointer; }
+
+  /* CSS สำหรับรายการซื้อของ (Shopping List) */
+  .shop-item { display: flex; align-items: center; gap: 10px; padding: 12px; border-bottom: 1px solid #fff0f5; transition: 0.2s; }
+  .shop-item.checked span { text-decoration: line-through; color: #ccc; }
+  .shop-item span { flex: 1; font-size: 1rem; }
+  .shop-check { width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary); margin: 0; }
+  .shop-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-to-money { background: #f0f0f0; border: none; padding: 5px 8px; border-radius: 10px; cursor: pointer; font-size: 0.8rem; filter: grayscale(1); transition: 0.2s; }
+  .btn-to-money:hover { filter: grayscale(0); background: #fff0f5; }
+
+  /* ปุ่มธนาคารจิ๋ว */
+  .bank-toggle-btn { position: fixed; right: 20px; bottom: 85px; background: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; z-index: 99; border: 2px solid var(--primary); transition: 0.3s; }
+  .bank-toggle-btn:active { transform: scale(0.9); }
+
+  /* ส่วนเพิ่มโหมด ยืม/คืน */
+  .entry-tab-container { display: flex; gap: 10px; margin-bottom: 15px; }
+  .entry-tab { flex: 1; padding: 10px; text-align: center; border-radius: 15px; background: #fff; border: 1px solid #eee; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
+  .entry-tab.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: bold; }
+  
+  /* Modal Overlay */
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; box-sizing: border-box; }
+  .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 30px; padding: 25px; position: relative; animation: popUp 0.3s ease; }
+  @keyframes popUp { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .close-modal { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: #ccc; }
+
+  /* ปรับให้เลือกตัวเลขได้ง่ายเพื่อกดค้างคัดลอก */
+  #m-loan-acc { user-select: all; -webkit-user-select: all; font-family: monospace; letter-spacing: 1px; background: #eee; padding: 2px 5px; border-radius: 5px; }
+
+  /* --- CUTE LOAN HISTORY UI --- */
+  .loan-history-box { border: 2px dashed #ffe0eb; border-radius: 20px; background: #fffcfd; padding: 12px; margin-bottom: 15px; }
+  .loan-h-title { background: #fff0f5; color: var(--dark-pink); padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; margin-bottom: 8px; display: inline-block; }
+  .loan-h-list { max-height: 100px; overflow-y: auto; padding: 0; margin: 0; list-style: none; }
+  .loan-h-item { background: white; border-radius: 12px; padding: 6px 10px; margin-bottom: 5px; border: 1px solid #f9f9f9; display: flex; justify-content: space-between; align-items: center; }
+  .loan-h-info { display: flex; flex-direction: column; }
+  .loan-h-amt { color: var(--income); font-weight: bold; font-size: 0.9rem; }
+  .loan-h-time { font-size: 0.65rem; color: #bbb; }
+  .btn-h-del { background: var(--expense); color: white; border: none; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; cursor: pointer; opacity: 0.6; }
+
+  /* --- BLUR SYSTEM CSS --- */
+  .blur-effect { filter: blur(5px); pointer-events: none; transition: 0.3s; }
+  .switch-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 5px 0; }
+  .switch { position: relative; display: inline-block; width: 45px; height: 24px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #eee; transition: .4s; border-radius: 24px; }
+  .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+  input:checked + .slider { background-color: var(--primary); }
+  input:checked + .slider:before { transform: translateX(21px); }
+
+  /* New Setting Button Styles */
+  .setting-popup-btn { position: absolute; right: 20px; bottom: 20px; width: 40px; height: 40px; background: #fff0f5; border: 2px solid var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; transition: 0.3s; z-index: 5; }
+  .setting-popup-btn:active { transform: scale(0.9); }
+  .view-settings-content { display: none; margin-top: 15px; border-top: 1px dashed #eee; padding-top: 15px; animation: slideDown 0.3s ease; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  
+  <div id="page-entry" class="page active">
+    <div id="today-alert-banner">
+        <div class="bell-icon">🔔</div>
+        <div style="font-size: 0.85rem; line-height: 1.3;">
+            <b style="color: var(--primary);">วันนี้มีอะไรน้า:</b><br>
+            <span id="today-alert-text">ไม่มีกิจกรรมจ้า</span>
+        </div>
+    </div>
+
+    <h2 style="text-align:center; color:var(--primary);">✨ จดบันทึกวันนี้</h2>
+    
+    <div class="budget-container">
+      <div class="budget-item">
+        <span class="budget-label">☁️ งบวันนี้</span>
+        <input type="number" id="start-budget" value="100" oninput="saveBudget()">
+      </div>
+      <div class="budget-divider"></div>
+      <div class="budget-item">
+        <span class="budget-label">🌸 คงเหลือ</span>
+        <div id="rem-budget">0</div>
+      </div>
+    </div>
+
+    <div class="entry-tab-container">
+        <div class="entry-tab active" id="tab-standard" onclick="toggleEntryMode('standard')">💰 จดรายรับ/รายจ่าย</div>
+        <div class="entry-tab" id="tab-loan" onclick="toggleEntryMode('loan')">🤝 สมุดบัญชี</div>
+    </div>
+
+    <div class="scroll-cat-container" id="cat-menu-wrapper"><div id="cat-menu"></div></div>
+    <div id="sub-items-box"></div>
+    
+    <div class="card">
+      <input type="text" id="custom-name" placeholder="จดชื่อรายการที่นี่...">
+      
+      <div id="loan-fields" style="display: none;">
+          <select id="bank-name" onchange="validateBankAcc()">
+              <option value="">-- เลือกช่องทาง --</option>
+              <option value="PromptPay">PromptPay (พร้อมเพย์) ✨</option>
+              <option value="กสิกรไทย">กสิกรไทย (K-Bank)</option>
+              <option value="ไทยพาณิชย์">ไทยพาณิชย์ (SCB)</option>
+              <option value="กรุงเทพ">กรุงเทพ (BBL)</option>
+              <option value="กรุงไทย">กรุงไทย (KTB)</option>
+              <option value="กรุงศรี">กรุงศรี (BAY)</option>
+              <option value="ทหารไทยธนชาต">ทหารไทยธนชาต (ttb)</option>
+              <option value="ออมสิน">ออมสิน (GSB)</option>
+              <option value="ธ.ก.ส.">ธ.ก.ส.</option>
+              <option value="อื่นๆ">อื่นๆ</option>
+          </select>
+          <input type="number" id="bank-acc" placeholder="เลขบัญชี / เบอร์โทร" oninput="validateBankAcc()">
+          <input type="text" id="person-name" placeholder="ชื่อเจ้าของบัญชี">
+          <textarea id="note" placeholder="หมายเหตุ..." rows="2" style="margin-bottom: 10px;"></textarea>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-bottom:0;">
+        <input type="number" id="amount" inputmode="decimal" placeholder="จำนวนเงิน" style="flex:1.2; font-weight:bold;">
+        <select id="type" style="flex:1;">
+          <option value="expense">รายจ่าย 🔴</option>
+          <option value="income">รายรับ 🟢</option>
+          <option value="save">ยืม 🔵</option>
+        </select>
+      </div>
+      
+      <label class="check-wrapper">
+        <input type="checkbox" id="is-excluded"> ไม่นับรวมในงบวันนี้
+      </label>
+
+      <button onclick="addItem()" style="width:100%; padding:16px; background:var(--primary); color:white; border:none; border-radius:22px; font-family:'Mali'; font-weight:bold; cursor:pointer; box-shadow: 0 4px 15px rgba(255, 175, 204, 0.4);">บันทึกเล้ยย ✨</button>
+    </div>
+  </div>
+
+  <div id="page-shopping" class="page">
+    <h2 style="text-align:center; color:var(--secondary);">🛒 รายการที่จะซื้อ</h2>
+    <div class="card">
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="shop-input" placeholder="พิมพ์ของที่จะซื้อ..." style="margin-bottom:0;">
+        <button onclick="addShopItem()" style="background:var(--secondary); color:white; border:none; border-radius:15px; padding:0 15px; font-family:'Mali'; font-weight:bold;">เพิ่ม</button>
+      </div>
+    </div>
+    <div class="card" id="shop-list-container" style="padding:10px;">
+      </div>
+    <center style="color:#ccc; font-size:0.8rem;">* กดที่ถุงเงิน 💰 เพื่อส่งไปหน้าจดเงิน</center>
+  </div>
+
+  <div id="page-stats" class="page">
+    <div id="ov-section" style="display:none; animation: fadeIn 0.4s;">
+        <h2 style="text-align:center; color:var(--primary);">🏆 สรุปยอดรวมทั้งหมด</h2>
+        <div class="card" style="text-align:center; background: linear-gradient(135deg, #ffafcc, #ffc2d1); color: white;">
+           <small>เงินคงเหลือสุทธิสะสม (ไม่รวมยืม/คืน)</small>
+           <div id="ov-total-balance" style="font-size:2.5rem; font-weight:bold; margin:5px 0;">0</div>
+        </div>
+        <div class="card" style="display:flex; justify-content:space-around; text-align:center; padding:10px; gap:5px; margin-bottom: 20px;">
+            <div class="ov-box"><small>รายรับสะสม</small><br><b style="color:var(--income)" id="ov-total-inc">0</b></div>
+            <div class="ov-box"><small>รายจ่ายสะสม</small><br><b style="color:var(--expense)" id="ov-total-exp">0</b></div>
+            <div class="ov-box"><small>เงินออมสะสม</small><br><b style="color:var(--save)" id="ov-total-save">0</b></div>
+        </div>
+        <hr style="border: none; border-top: 1px dashed #ffc2d1; margin-bottom: 20px;">
+    </div>
+
+    <div class="card" style="text-align:center; padding: 15px;">
+        <small style="color:#aaa;">ย้อนดูรายการวันที่</small>
+        <div class="date-picker-wrapper">
+          <div class="cute-date-display" id="display-stat-date">📅 เลือกวันที่</div>
+          <input type="date" id="stat-date-picker" class="hidden-date-input" onchange="changeStatDate()">
+        </div>
+    </div>
+    <div class="card" style="display:flex; justify-content:space-around; text-align:center; padding:10px; gap:5px;">
+        <div class="stat-box" onclick="filterStats('income')" id="box-income"><small>รายรับ</small><br><b id="sum-in">0</b></div>
+        <div class="stat-box" onclick="filterStats('expense')" id="box-expense"><small>รายจ่าย</small><br><b id="sum-ex">0</b></div>
+        <div class="stat-box" onclick="filterStats('loan')" id="box-loan"><small>ยืม/คืน</small><br><b id="sum-ln">0</b></div>
+    </div>
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <b id="stat-date-label">รายการทั้งหมด</b>
+            <small onclick="filterStats('all')" style="color:var(--primary); cursor:pointer; font-weight:bold;">ดูทั้งหมด</small>
+        </div>
+        <div id="stat-list-container" style="margin-top:10px;"></div>
+    </div>
+    
+    <div class="bank-toggle-btn" onclick="toggleOverview()">🏦</div>
+  </div>
+
+  <div id="page-cal" class="page">
+    <h2 style="text-align:center; color:var(--primary);">📅 ปฏิทินวันพระ/เทศกาล</h2>
+    <div class="card" style="text-align:center; padding: 15px;">
+        <small style="color:#aaa;">เปลี่ยนเดือนที่ดู</small>
+        <div class="date-picker-wrapper">
+          <div class="cute-date-display" id="display-cal-month">🗓️ เลือกเดือน</div>
+          <input type="month" id="cal-month-picker" class="hidden-date-input" onchange="changeCalMonth()">
+        </div>
+    </div>
+    <div class="cal-grid" id="main-calendar"></div>
+    <div class="card" style="margin-top:15px; border-left: 8px solid var(--primary);">
+        <b id="plan-date-label">จดแผนงาน/สิ่งที่ต้องทำ</b>
+        <textarea id="plan-input" placeholder="จดโน้ตสำคัญของวันนี้..." rows="3" oninput="savePlan()" style="margin-top:10px; border-color: #ffe0eb;"></textarea>
+    </div>
+  </div>
+
+  <div id="page-settings" class="page">
+    <h2 style="text-align:center; color:var(--primary);">⚙️ ตั้งค่า</h2>
+    
+    <div class="card" style="border: 2px solid var(--primary); min-height: 80px;">
+        <b style="color:var(--dark-pink);">👁️ ตั้งค่าการแสดงผลหน้าสรุป</b>
+        
+        <div class="setting-popup-btn" onclick="toggleViewSettingsMenu()">✨</div>
+
+        <div id="view-settings-menu" class="view-settings-content">
+            <div class="switch-row">
+                <span>เบลอรายการ "รายรับ"</span>
+                <label class="switch"><input type="checkbox" id="blur-income" onchange="updateViewSettings()"><span class="slider"></span></label>
+            </div>
+            <div class="switch-row">
+                <span>เบลอรายการ "รายจ่าย"</span>
+                <label class="switch"><input type="checkbox" id="blur-expense" onchange="updateViewSettings()"><span class="slider"></span></label>
+            </div>
+            <div class="switch-row">
+                <span>เบลอรายการ "ยืม/คืน"</span>
+                <label class="switch"><input type="checkbox" id="blur-loan" onchange="updateViewSettings()"><span class="slider"></span></label>
+            </div>
+
+            <hr style="border:none; border-top:1px dashed #eee; margin:10px 0;">
+            <small style="color:#888;">ติ๊กเพื่อ <b>"ไม่แสดง"</b> ในหน้าสรุปเลย:</small>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+                <label class="check-wrapper"><input type="checkbox" id="hide-income" onchange="updateViewSettings()"> ซ่อนรายรับ</label>
+                <label class="check-wrapper"><input type="checkbox" id="hide-expense" onchange="updateViewSettings()"> ซ่อนรายจ่าย</label>
+                <label class="check-wrapper"><input type="checkbox" id="hide-loan" onchange="updateViewSettings()"> ซ่อนยืม/คืน</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="border: 2px dashed var(--secondary);">
+        <b>➕ เพิ่มหมวดหมู่หลัก</b>
+        <div style="display:flex; gap:5px; margin-top:10px;">
+            <input type="text" id="new-cat-icon" placeholder="ไอคอน" style="flex:0.5; text-align:center;">
+            <input type="text" id="new-cat-label" placeholder="ชื่อหมวดหมู่" style="flex:1.5;">
+            <button onclick="addNewCategory()" style="background:var(--primary); color:white; border:none; border-radius:15px; padding:0 15px;">เพิ่ม</button>
+        </div>
+    </div>
+    <div id="manage-list-container"></div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="loan-modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeLoanModal()">✕</span>
+        <h3 id="m-loan-title" style="color:var(--primary); margin-top:0;">🤝 รายละเอียด</h3>
+        <div style="background:#f9f9f9; padding:15px; border-radius:20px; margin-bottom:15px; font-size:0.9rem;">
+            <p>🏦 <b>ธนาคาร:</b> <span id="m-loan-bank">-</span></p>
+            <p>💳 <b>เลขบัญชี:</b> <span id="m-loan-acc" title="กดค้างเพื่อคัดลอก">-</span></p>
+            <p>👤 <b>ชื่อบัญชี:</b> <span id="m-loan-person">-</span></p>
+            <p>📝 <b>หมายเหตุ:</b> <span id="m-loan-note">-</span></p>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px; padding:0 10px;">
+            <div style="text-align:center;"><small>ยอดเต็ม</small><br><b id="m-loan-total" style="color:#555;">0</b></div>
+            <div style="text-align:center;"><small>คืนแล้ว</small><br><b id="m-loan-paid" style="color:var(--income);">0</b></div>
+            <div style="text-align:center;"><small>คงเหลือ</small><br><b id="m-loan-rem" style="color:var(--expense);">0</b></div>
+        </div>
+
+        <div class="loan-history-box">
+            <span class="loan-h-title">🩷 ประวัติการทยอยคืนเงิน</span>
+            <ul class="loan-h-list" id="m-loan-history-list"></ul>
+        </div>
+
+        <div style="border-top:1px dashed #eee; padding-top:15px;">
+            <small>บันทึกยอดคืนเพิ่ม (บาท)</small>
+            <div style="display:flex; gap:10px; margin-top:5px;">
+                <input type="number" id="pay-back-amount" placeholder="ใส่ยอดที่คืน..." style="margin-bottom:0;">
+                <button onclick="savePayBack()" style="background:var(--primary); color:white; border:none; border-radius:15px; padding:0 20px; font-family:'Mali'; font-weight:bold;">ตกลง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-item active" id="nav-entry" onclick="showPage('entry')"><span>📝</span>จดเงิน</div>
+  <div class="nav-item" id="nav-shopping" onclick="showPage('shopping')"><span>🛒</span>ตะกร้า</div>
+  <div class="nav-item" id="nav-stats" onclick="showPage('stats')"><span>📊</span>สรุป</div>
+  <div class="nav-item" id="nav-cal" onclick="showPage('cal')"><span>📅</span>ปฏิทิน</div>
+  <div class="nav-item" id="nav-settings" onclick="showPage('settings')"><span>⚙️</span>ตั้งค่า</div>
+</nav>
+
+<script>
+const festivals = { "1-1": "ปีใหม่ 🎉", "4-13": "สงกรานต์ 💦", "4-14": "สงกรานต์ 💦", "4-15": "สงกรานต์ 💦", "5-1": "วันแรงงาน 🛠️", "8-12": "วันแม่ 💙", "10-13": "ร.9 💛", "12-5": "วันพ่อ 💛", "12-31": "สิ้นปี 🎊" };
+let customCats = JSON.parse(localStorage.getItem('catsV2')) || {
+  'f': { i: '🍚', l: 'กิน', s: ['ข้าวแกง','ก๋วยเตี๋ยว'], show: true },
+  'd': { i: '🥤', l: 'น้ำ', s: ['กาแฟ','ชานม'], show: true },
+  'o': { i: '🌈', l: 'อื่นๆ', s: ['ของใช้','ช้อปปิ้ง'], show: true }
+};
+let transactions = JSON.parse(localStorage.getItem('transV2')) || [];
+let shopItems = JSON.parse(localStorage.getItem('shopItemsV2')) || [];
+let plans = JSON.parse(localStorage.getItem('plansV2')) || {};
+let budget = localStorage.getItem('budgetV2') || 100;
+
+// โหลดค่าการตั้งค่าการเบลอและซ่อน
+let viewSettings = JSON.parse(localStorage.getItem('viewSettingsV2')) || {
+  blur: { income: false, expense: false, loan: false },
+  hide: { income: false, expense: false, loan: false }
+};
+
+let selectedDate = new Date().toLocaleDateString('en-CA');
+let currentFilter = 'all';
+let calViewDate = new Date();
+let currentEntryMode = 'standard';
+let activeLoanId = null;
+
+function init() {
+  document.getElementById('stat-date-picker').value = selectedDate;
+  document.getElementById('cal-month-picker').value = selectedDate.substring(0, 7);
+  
+  // โหลดค่าไปที่หน้า Settings
+  document.getElementById('blur-income').checked = viewSettings.blur.income;
+  document.getElementById('blur-expense').checked = viewSettings.blur.expense;
+  document.getElementById('blur-loan').checked = viewSettings.blur.loan;
+  document.getElementById('hide-income').checked = viewSettings.hide.income;
+  document.getElementById('hide-expense').checked = viewSettings.hide.expense;
+  document.getElementById('hide-loan').checked = viewSettings.hide.loan;
+
+  updateDateDisplays();
+  updateEntryMenu();
+  renderManageList();
+  renderCal();
+  renderStats();
+  updateRemBudget();
+  checkTodayAlert();
+  renderShopList();
+}
+
+// ฟังก์ชันใหม่สำหรับเปิด/ปิดเมนูตั้งค่าแบบ Pop-up
+function toggleViewSettingsMenu() {
+    const menu = document.getElementById('view-settings-menu');
+    const btn = document.querySelector('.setting-popup-btn');
+    if(menu.style.display === 'block') {
+        menu.style.display = 'none';
+        btn.innerText = '✨';
+    } else {
+        menu.style.display = 'block';
+        btn.innerText = '✕';
+    }
+}
+
+// ฟังก์ชันบันทึกค่าการตั้งค่า
+function updateViewSettings() {
+  viewSettings.blur.income = document.getElementById('blur-income').checked;
+  viewSettings.blur.expense = document.getElementById('blur-expense').checked;
+  viewSettings.blur.loan = document.getElementById('blur-loan').checked;
+  
+  viewSettings.hide.income = document.getElementById('hide-income').checked;
+  viewSettings.hide.expense = document.getElementById('hide-expense').checked;
+  viewSettings.hide.loan = document.getElementById('hide-loan').checked;
+
+  localStorage.setItem('viewSettingsV2', JSON.stringify(viewSettings));
+  renderStats(); // อัปเดตหน้าสรุปทันที
+}
+
+function validateBankAcc() {
+    const bank = document.getElementById('bank-name').value;
+    const acc = document.getElementById('bank-acc');
+    const val = acc.value.toString();
+    
+    if (val === "") {
+        acc.classList.remove('invalid-input');
+        return;
+    }
+
+    let isValid = false;
+    if (bank === "PromptPay") {
+        if (val.length === 10 || val.length === 13) isValid = true;
+    } else if (bank === "" || bank === "อื่นๆ") {
+        isValid = true;
+    } else {
+        if (val.length === 10) isValid = true;
+    }
+
+    if (isValid) {
+        acc.classList.remove('invalid-input');
+    } else {
+        acc.classList.add('invalid-input');
+    }
+}
+
+function toggleEntryMode(mode) {
+    currentEntryMode = mode;
+    document.querySelectorAll('.entry-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + mode).classList.add('active');
+    
+    if(mode === 'loan') {
+        document.getElementById('loan-fields').style.display = 'block';
+        document.getElementById('cat-menu-wrapper').style.display = 'none';
+        document.getElementById('sub-items-box').style.display = 'none';
+        document.getElementById('custom-name').style.display = 'none';
+    } else {
+        document.getElementById('loan-fields').style.display = 'none';
+        document.getElementById('cat-menu-wrapper').style.display = 'block';
+        document.getElementById('sub-items-box').style.display = 'none';
+        document.getElementById('custom-name').style.display = 'block';
+        document.getElementById('custom-name').placeholder = "จดชื่อรายการที่นี่...";
+    }
+}
+
+function checkTodayAlert() {
+  const today = new Date().toLocaleDateString('en-CA');
+  const d = new Date();
+  const monk = d.getDate() % 8 === 0;
+  const fest = festivals[`${d.getMonth()+1}-${d.getDate()}`];
+  const plan = plans[today];
+
+  if (monk || fest || plan) {
+    document.getElementById('today-alert-banner').style.display = 'flex';
+    let msg = [];
+    if(monk) msg.push("วันนี้วันพระ 🙏");
+    if(fest) msg.push(fest);
+    if(plan) msg.push(plan);
+    document.getElementById('today-alert-text').innerText = msg.join(" | ");
+  } else {
+    document.getElementById('today-alert-banner').style.display = 'none';
+  }
+}
+
+function updateDateDisplays() {
+  const d = new Date(selectedDate);
+  document.getElementById('display-stat-date').innerText = "📅 " + d.toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'});
+  const calD = calViewDate;
+  document.getElementById('display-cal-month').innerText = "🗓️ " + calD.toLocaleDateString('th-TH', {month:'long', year:'numeric'});
+}
+
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(nv => nv.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.getElementById('nav-' + p).classList.add('active');
+  if(p === 'entry') { checkTodayAlert(); updateEntryMenu(); }
+  if(p === 'cal') renderCal();
+  if(p === 'stats') { renderStats(); updateOverview(); }
+  if(p === 'settings') renderManageList();
+  if(p === 'shopping') renderShopList();
+}
+
+function toggleOverview() {
+  const section = document.getElementById('ov-section');
+  if(section.style.display === 'none') {
+    section.style.display = 'block';
+    updateOverview();
+  } else {
+    section.style.display = 'none';
+  }
+}
+
+function addItem() {
+  let name = document.getElementById('custom-name').value;
+  const amtInput = document.getElementById('amount').value;
+  const amt = parseFloat(amtInput);
+  const type = document.getElementById('type').value;
+  const excluded = document.getElementById('is-excluded').checked;
+
+  if(currentEntryMode !== 'loan' && !name) return;
+  if(amtInput === "" || isNaN(amt)) return; 
+
+  const now = new Date();
+  const time = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  
+  if(currentEntryMode === 'loan') {
+      name = "ยืม/คืน: " + (document.getElementById('person-name').value || "ไม่ระบุชื่อ");
+  }
+
+  let entryData = { id: Date.now(), name, amt, type, date: selectedDate, time, excluded: excluded, mode: currentEntryMode };
+  
+  if(currentEntryMode === 'loan') {
+      entryData.bank = document.getElementById('bank-name').value;
+      entryData.acc = document.getElementById('bank-acc').value;
+      entryData.person = document.getElementById('person-name').value;
+      entryData.note = document.getElementById('note').value;
+      entryData.paid = 0; 
+      entryData.loanHistory = [];
+  }
+
+  transactions.unshift(entryData);
+  localStorage.setItem('transV2', JSON.stringify(transactions));
+  
+  document.getElementById('custom-name').value = '';
+  document.getElementById('amount').value = '';
+  document.getElementById('bank-name').value = '';
+  document.getElementById('bank-acc').value = '';
+  document.getElementById('bank-acc').classList.remove('invalid-input');
+  document.getElementById('person-name').value = '';
+  document.getElementById('note').value = '';
+  document.getElementById('is-excluded').checked = false; 
+  document.getElementById('sub-items-box').style.display = 'none';
+  
+  renderStats();
+  updateRemBudget();
+}
+
+function deleteItem(id) {
+  transactions = transactions.filter(t => t.id !== id);
+  localStorage.setItem('transV2', JSON.stringify(transactions));
+  renderStats();
+  updateRemBudget();
+}
+
+function updateRemBudget() {
+  let i=0, e=0, s=0;
+  const today = new Date().toLocaleDateString('en-CA');
+  transactions.filter(t => t.date === today).forEach(t => {
+    if(!t.excluded && t.mode === 'standard') {
+        if(t.type === 'income') i += t.amt;
+        else if(t.type === 'expense') e += t.amt;
+        else if(t.type === 'save') s += t.amt;
+    }
+  });
+  document.getElementById('rem-budget').innerText = (parseFloat(budget) + i - e - s).toLocaleString();
+  document.getElementById('start-budget').value = budget;
+}
+
+function updateOverview() {
+  let totalInc = 0, totalExp = 0, totalSave = 0;
+  transactions.forEach(t => {
+    if(t.mode === 'standard') {
+        if(t.type === 'income') totalInc += t.amt;
+        else if(t.type === 'expense') totalExp += t.amt;
+        else if(t.type === 'save') totalSave += t.amt;
+    }
+  });
+  document.getElementById('ov-total-inc').innerText = totalInc.toLocaleString();
+  document.getElementById('ov-total-exp').innerText = totalExp.toLocaleString();
+  document.getElementById('ov-total-save').innerText = totalSave.toLocaleString();
+  document.getElementById('ov-total-balance').innerText = (totalInc - totalExp - totalSave).toLocaleString();
+}
+
+function changeStatDate() {
+  selectedDate = document.getElementById('stat-date-picker').value;
+  updateDateDisplays();
+  renderStats();
+}
+
+function filterStats(type) {
+  currentFilter = type;
+  document.querySelectorAll('.stat-box').forEach(b => b.classList.remove('active'));
+  if(type !== 'all') document.getElementById('box-' + type).classList.add('active');
+  renderStats();
+}
+
+function renderStats() {
+  const list = document.getElementById('stat-list-container');
+  list.innerHTML = '';
+  let in_sum=0, ex_sum=0, ln_sum=0;
+  
+  const dayData = transactions.filter(t => t.date === selectedDate);
+  dayData.forEach(t => {
+    if(t.mode === 'loan') ln_sum += t.amt;
+    else if(t.type === 'income') in_sum += t.amt; 
+    else if(t.type === 'expense') ex_sum += t.amt; 
+  });
+  
+  const sumInBox = document.getElementById('box-income');
+  const sumExBox = document.getElementById('box-expense');
+  const sumLnBox = document.getElementById('box-loan');
+  
+  const sumInEl = document.getElementById('sum-in');
+  const sumExEl = document.getElementById('sum-ex');
+  const sumLnEl = document.getElementById('sum-ln');
+
+  sumInBox.style.display = viewSettings.hide.income ? 'none' : 'block';
+  sumExBox.style.display = viewSettings.hide.expense ? 'none' : 'block';
+  sumLnBox.style.display = viewSettings.hide.loan ? 'none' : 'block';
+
+  sumInEl.innerText = in_sum.toLocaleString();
+  sumInEl.style.color = 'var(--income)';
+  if(viewSettings.blur.income) sumInEl.classList.add('blur-effect'); else sumInEl.classList.remove('blur-effect');
+
+  sumExEl.innerText = ex_sum.toLocaleString();
+  sumExEl.style.color = 'var(--expense)';
+  if(viewSettings.blur.expense) sumExEl.classList.add('blur-effect'); else sumExEl.classList.remove('blur-effect');
+
+  sumLnEl.innerText = ln_sum.toLocaleString();
+  sumLnEl.style.color = 'var(--secondary)';
+  
+  if(viewSettings.blur.loan) {
+      sumLnEl.classList.add('blur-effect');
+      sumLnBox.querySelector('small').classList.add('blur-effect');
+  } else {
+      sumLnEl.classList.remove('blur-effect');
+      sumLnBox.querySelector('small').classList.remove('blur-effect');
+  }
+
+  const filtered = currentFilter === 'all' ? dayData : (currentFilter === 'loan' ? dayData.filter(t => t.mode === 'loan') : dayData.filter(t => t.type === currentFilter && t.mode !== 'loan'));
+
+  filtered.forEach(t => {
+    if(t.type === 'income' && viewSettings.hide.income && t.mode !== 'loan') return;
+    if(t.type === 'expense' && viewSettings.hide.expense && t.mode !== 'loan') return;
+    if(t.mode === 'loan' && viewSettings.hide.loan) return;
+
+    let isBlur = false;
+    if(t.mode === 'loan' && viewSettings.blur.loan) isBlur = true;
+    else if(t.type === 'income' && viewSettings.blur.income) isBlur = true;
+    else if(t.type === 'expense' && viewSettings.blur.expense) isBlur = true;
+
+    let blurClass = isBlur ? 'blur-effect' : '';
+    let symbol = (t.type === 'income' || t.type === 'save') ? '+' : '-';
+    let lockBadge = t.excluded ? ' <small style="color:var(--secondary);">🔹</small>' : '';
+    let isLoan = t.mode === 'loan';
+    let loanStatus = "";
+    
+    if(isLoan) {
+        let paid = (t.loanHistory || []).reduce((sum, h) => sum + h.amt, 0);
+        let rem = t.amt - paid;
+        loanStatus = rem <= 0 ? ' <small style="color:var(--income);">[คืนครบแล้ว]</small>' : ` <small style="color:var(--expense);">[ค้าง ${rem.toLocaleString()}]</small>`;
+    }
+
+    list.innerHTML += `<div class="history-item" onclick="${isLoan ? `openLoanModal(${t.id})` : ''}">
+        <div class="history-info ${blurClass}">
+            <b>${isLoan ? '🤝 ' : ''}${t.name}${lockBadge}${loanStatus}</b>
+            <small>${t.time} ${isLoan ? '| ' + (t.person || 'ไม่ระบุชื่อ') : ''}</small>
+        </div>
+        <div style="display:flex; align-items:center;">
+            <span class="history-amt ${blurClass}" style="color:var(--${isLoan ? 'secondary' : t.type})">${isLoan ? '' : symbol}${t.amt.toLocaleString()}</span>
+            <button class="btn-del" onclick="event.stopPropagation(); deleteItem(${t.id})">✕</button>
+        </div></div>`;
+  });
+  if(filtered.length === 0) list.innerHTML = '<center style="color:#ccc; padding:20px;">ไม่มีรายการจ้า</center>';
+}
+
+function openLoanModal(id) {
+    activeLoanId = id;
+    const t = transactions.find(item => item.id === id);
+    if(!t) return;
+    
+    document.getElementById('m-loan-title').innerText = "🤝 รายละเอียด";
+    document.getElementById('m-loan-bank').innerText = t.bank || '-';
+    document.getElementById('m-loan-acc').innerText = t.acc || '-';
+    document.getElementById('m-loan-person').innerText = t.person || '-';
+    document.getElementById('m-loan-note').innerText = t.note || '-';
+    
+    if(!t.loanHistory) t.loanHistory = [];
+    let paid = t.loanHistory.reduce((sum, h) => sum + h.amt, 0);
+    let rem = t.amt - paid;
+    
+    document.getElementById('m-loan-total').innerText = t.amt.toLocaleString();
+    document.getElementById('m-loan-paid').innerText = paid.toLocaleString();
+    document.getElementById('m-loan-rem').innerText = rem.toLocaleString();
+    document.getElementById('pay-back-amount').value = '';
+
+    const hList = document.getElementById('m-loan-history-list');
+    hList.innerHTML = '';
+    if(t.loanHistory.length === 0) {
+        hList.innerHTML = '<div style="text-align:center; font-size:0.7rem; color:#ccc; padding:10px;">ยังไม่มีประวัติการคืนเงินจ้า</div>';
+    } else {
+        t.loanHistory.forEach((h, idx) => {
+            hList.innerHTML += `
+                <li class="loan-h-item">
+                    <div class="loan-h-info">
+                        <span class="loan-h-amt">+${h.amt.toLocaleString()} บาท</span>
+                        <span class="loan-h-time">${h.date} | ${h.time}</span>
+                    </div>
+                    <button class="btn-h-del" onclick="deleteLoanHistory(${idx})">✕</button>
+                </li>`;
+        });
+    }
+    
+    document.getElementById('loan-modal').style.display = 'flex';
+}
+
+function closeLoanModal() {
+    document.getElementById('loan-modal').style.display = 'none';
+    activeLoanId = null;
+}
+
+function savePayBack() {
+    const amtInput = document.getElementById('pay-back-amount').value;
+    const amt = parseFloat(amtInput);
+    if(isNaN(amt) || amt <= 0 || !activeLoanId) return;
+    
+    const index = transactions.findIndex(t => t.id === activeLoanId);
+    if(index !== -1) {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+        const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+        if(!transactions[index].loanHistory) transactions[index].loanHistory = [];
+        transactions[index].loanHistory.push({ amt, date: dateStr, time: timeStr });
+        
+        localStorage.setItem('transV2', JSON.stringify(transactions));
+        renderStats();
+        openLoanModal(activeLoanId); 
+    }
+}
+
+function deleteLoanHistory(hIdx) {
+    if(!confirm('ลบประวัติการคืนยอดนี้ใช่ไหม?')) return;
+    const tIndex = transactions.findIndex(t => t.id === activeLoanId);
+    if(tIndex !== -1) {
+        transactions[tIndex].loanHistory.splice(hIdx, 1);
+        localStorage.setItem('transV2', JSON.stringify(transactions));
+        renderStats();
+        openLoanModal(activeLoanId);
+    }
+}
+
+function changeCalMonth() {
+  const val = document.getElementById('cal-month-picker').value;
+  if(val) { calViewDate = new Date(val + "-01"); updateDateDisplays(); renderCal(); }
+}
+
+function renderCal() {
+  const container = document.getElementById('main-calendar');
+  container.innerHTML = '';
+  const year = calViewDate.getFullYear(), month = calViewDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  ['อา','จ','อ','พ','พฤ','ศ','ส'].forEach(d => container.innerHTML += `<div style="font-size:0.75rem; color:#bbb; font-weight:bold;">${d}</div>`);
+  for(let i=0; i<firstDay; i++) container.innerHTML += `<div></div>`;
+  for(let d=1; d<=daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const monk = d % 8 === 0; 
+    const fest = festivals[`${month+1}-${d}`];
+    const isToday = new Date().toLocaleDateString('en-CA') === dateStr;
+    const isSelected = selectedDate === dateStr;
+    const hasPlan = plans[dateStr] && plans[dateStr].trim() !== "";
+    let alertIcon = (monk || fest || hasPlan) ? `<div class="alert-dot">🔔</div>` : "";
+    container.innerHTML += `<div class="day-cell ${isToday?'today':''} ${isSelected?'selected':''}" onclick="selectPlanDay('${dateStr}')">${alertIcon}<b style="font-size:1rem;">${d}</b>${monk?'<div class="monk-icon-wrap">🙏 วันพระ</div>':''}${fest?`<div class="event-name">${fest}</div>`:''}${hasPlan?'<div class="has-plan-heart">❤️</div>':''}</div>`;
+  }
+}
+
+function selectPlanDay(dateStr) { selectedDate = dateStr; const d = new Date(dateStr); document.getElementById('plan-date-label').innerText = "แผนงานวันที่ " + d.toLocaleDateString('th-TH', {day:'numeric', month:'short', year:'2-digit'}); document.getElementById('plan-input').value = plans[dateStr] || ''; updateDateDisplays(); renderCal(); }
+function savePlan() { const val = document.getElementById('plan-input').value; if(val) plans[selectedDate] = val; else delete plans[selectedDate]; localStorage.setItem('plansV2', JSON.stringify(plans)); renderCal(); checkTodayAlert(); }
+
+function updateEntryMenu() { 
+  const menu = document.getElementById('cat-menu'); 
+  menu.innerHTML = ''; 
+  for(let k in customCats) { 
+    if(customCats[k].show !== false) {
+      menu.innerHTML += `<div class="cat-btn" onclick="showSubs('${k}'); document.getElementById('custom-name').value='${customCats[k].l}'"><span>${customCats[k].i}</span><br><small>${customCats[k].l}</small></div>`; 
+    }
+  } 
+}
+
+function showSubs(k) { 
+  const box = document.getElementById('sub-items-box'); 
+  box.innerHTML = ''; 
+  box.style.display = 'flex'; 
+  customCats[k].s.forEach(s => { 
+    box.innerHTML += `<button class="sub-item-btn" onclick="document.getElementById('custom-name').value='${s}'">${s}</button>`; 
+  }); 
+}
+
+function renderManageList() { 
+  const container = document.getElementById('manage-list-container'); 
+  container.innerHTML = ''; 
+  for(let k in customCats) { 
+    let isChecked = (customCats[k].show !== false) ? 'checked' : '';
+    let tags = customCats[k].s.map((s, idx) => `<div class="tag">${s}<span onclick="deleteSubItem('${k}', ${idx})">✕</span></div>`).join(''); 
+    
+    container.innerHTML += `
+      <div class="manage-item">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" ${isChecked} onchange="toggleCatVisibility('${k}', this.checked)" style="width:18px; height:18px; accent-color:var(--primary);">
+            <b>${customCats[k].i} ${customCats[k].l}</b>
+          </label>
+          <button onclick="deleteCategory('${k}')" style="border:none; background:none; color:#ccc; cursor:pointer;">ลบ</button>
+        </div>
+        <div class="tag-list">${tags}</div>
+        <div style="display:flex; gap:5px;">
+          <input type="text" id="in-${k}" placeholder="+ รายการย่อย" style="margin:0;">
+          <button onclick="addSubItem('${k}')" style="background:var(--secondary); color:white; border:none; border-radius:10px; padding:0 10px; cursor:pointer;">เพิ่ม</button>
+        </div>
+      </div>`; 
+  } 
+}
+
+function toggleCatVisibility(k, isVisible) {
+  customCats[k].show = isVisible;
+  saveCats();
+}
+
+function addNewCategory() { 
+  const i = document.getElementById('new-cat-icon').value || '✨', 
+        l = document.getElementById('new-cat-label').value; 
+  if(!l) return; 
+  customCats['c'+Date.now()] = { i, l, s: [], show: true }; 
+  saveCats(); 
+  document.getElementById('new-cat-icon').value = '';
+  document.getElementById('new-cat-label').value = '';
+}
+
+function addSubItem(k) { const v = document.getElementById('in-'+k).value; if(!v) return; customCats[k].s.push(v); saveCats(); }
+function deleteSubItem(k, i) { customCats[k].s.splice(i, 1); saveCats(); }
+function deleteCategory(k) { if(confirm('ลบหมวดหมู่นี้ใช่ไหม?')) { delete customCats[k]; saveCats(); } }
+function saveCats() { localStorage.setItem('catsV2', JSON.stringify(customCats)); updateEntryMenu(); renderManageList(); }
+function saveBudget() { budget = document.getElementById('start-budget').value || 0; localStorage.setItem('budgetV2', budget); updateRemBudget(); }
+
+function addShopItem() {
+  const input = document.getElementById('shop-input');
+  if(!input.value.trim()) return;
+  shopItems.push({ id: Date.now(), text: input.value, checked: false });
+  input.value = '';
+  saveShop();
+}
+
+function toggleShopItem(id) {
+  const item = shopItems.find(i => i.id === id);
+  if(item) item.checked = !item.checked;
+  saveShop();
+}
+
+function deleteShopItem(id) {
+  shopItems = shopItems.filter(i => i.id !== id);
+  saveShop();
+}
+
+function sendShopToMoney(id) {
+  const item = shopItems.find(i => i.id === id);
+  if(!item) return;
+  document.getElementById('custom-name').value = item.text;
+  toggleEntryMode('standard');
+  showPage('entry');
+  document.getElementById('amount').focus();
+}
+
+function renderShopList() {
+  const container = document.getElementById('shop-list-container');
+  container.innerHTML = '';
+  if(shopItems.length === 0) {
+    container.innerHTML = '<center style="color:#ccc; padding:20px;">ไม่มีรายการที่จะซื้อจ้า</center>';
+    return;
+  }
+  shopItems.forEach(item => {
+    container.innerHTML += `
+      <div class="shop-item ${item.checked ? 'checked' : ''}">
+        <input type="checkbox" class="shop-check" ${item.checked ? 'checked' : ''} onchange="toggleShopItem(${item.id})">
+        <span>${item.text}</span>
+        <div class="shop-actions">
+           <button class="btn-to-money" onclick="sendShopToMoney(${item.id})">💰</button>
+           <button class="btn-del" onclick="deleteShopItem(${item.id})">✕</button>
+        </div>
+      </div>`;
+  });
+}
+
+function saveShop() {
+  localStorage.setItem('shopItemsV2', JSON.stringify(shopItems));
+  renderShopList();
+}
+
+init();
+</script>
+</body>
+</html>
+{
